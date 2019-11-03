@@ -1,0 +1,42 @@
+一,所需要的软件
+	1,Eclipse neon2(见eclipse 安装教程)
+	2,Spring IDE 4.6 version
+	3,Spring 4.3 version
+
+二,Spring IDE 安装
+	网上有两种方案，方案一下载文件，方案二在线更新.
+	
+	查看你的eclipse version.找到对应的spring ide version
+	 1) help-->About Eclipse
+	 2) 选择 About Eclipse
+	 3) 点击第一个eclipse 图标
+	 4) 查看 Feature Name 中 Eclipse Platform 对应的Version 版本
+	根据eclipse版本，选择插件的版本
+    在官网http://spring.io/tools/sts/all页面中,查看eclipse对应的插件版本
+	
+	方法一
+		下载好spring插件包版本号到本地,然后打开eclipse，点击Help
+		1) help-->Install New Software...
+		2) 击右侧的add
+		3) 弹出框中Name:spring ide ,location:选择Archive,选择刚才下载好的spring官方插件,点击oK
+		4) 只选择springIDE选项的，下边的多选框取消，是不更新最新版本的
+		5) 点击next，开始安装，等待一会
+		6) 两步直接next
+		7) 到这里选择我同意，点击finish
+		8) 开始安装
+		9) 是否重启，点击yes
+		10) 重启之后，欢迎页面会展示一个Spring IDE
+	
+	方案二太慢,可谓龟速啊
+		1) help-->Install New Software...
+		2) work with 中输入http://dist.springsource.com/release/TOOLS/update/e4.6/ ,回车等待片刻
+		3) 点击accept(接受)，然后一路next就成.
+三.Spring 安装
+	点击超链接：http://repo.spring.io/release/org/springframework/spring/
+	下载Spring 4.3.5 最新版本
+	我这里下载的是最新的spring framework 4.3.5完整版本：spring-framework-4.3.5.RELEASE-dist.zip，也就是第一个，下载之后解压出来即可
+	
+	解压好之后，打开下面的libs目录，这里面就是spring framework所有的jar包了，我们打开eclipse建立一个项目，普通项目或者web项目都可以
+
+　　然后，我们复制必要的jar包，放到项目的某一个指定目录下或者web项目的lib目录下
+	在这里要讲到commons-logging-1.2.jar,它是Apache的日志管理工具，spring为了所有的java应用程序进行统一的日志接口管理，所以需要下载commons-logging.jar这个包，下载地址是：http://commons.apache.org/proper/commons-logging/download_logging.cgi，进入后点击Download下载就行，然后和spring的包一起导入

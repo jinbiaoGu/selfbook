@@ -1,0 +1,26 @@
+linux 翻墙代理
+下载 shadowsocks
+pip install shadowsocks
+
+sudo vi /etc/ssserver.json
+配置你的客户端代理信息,如下所示
+
+ {
+  "server": "150.95.135.128",
+  "server_port": 10010,
+  "password": "G6b3ag",
+  "timeout":600,
+  "local_port":1080,
+  "method": "chacha20"
+   }
+
+启动客户端
+sslocal -c /etc/ssserver.json -d start
+
+安装proxychains
+
+apt-get install proxychains
+
+使用 proxychains 后面跟对就的网址 
+proxychains wget url 
+

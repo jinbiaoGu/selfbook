@@ -1,0 +1,142 @@
+Nginx的代理配置说明
+Nginx配置文件是nginx.conf
+代理本地文件
+location /JFGJ/ {
+ 	proxy_pass http://192.168.1.50:8080;
+ } 
+location ^~ /JFGJ/static/ { 
+	proxy_pass http://localhost:8080/;
+}
+
+location ^~ /JFGJ/images/ { 
+	alias "D:/Intelligence Monitoring/JFGJ/web/images/"; 
+}
+ 
+
+
+配置正向代理如下:
+
+upstream golang123Mobile {
+    server 127.0.0.1:8024;
+}
+
+upstream golang123MobileApi {
+    server 127.0.0.1:8023;
+}
+
+server {
+    listen 80;
+    server_name mdev.golang123.com;
+
+    access_log /path/logs/golang123.access.log;  #请修改
+    error_log /path/logs/golang123.error.log;    #请修改
+
+    rewrite ^(.*) https://$server_name$1 permanent;
+}
+
+server {
+    listen       443;
+    server_name mdev.golang123.com;
+
+    access_log /path/logs/golang123.access.log; #请修改
+    error_log /path/logs/golang123.error.log;   #请修改
+
+    ssl on;
+    ssl_certificate /path/cert/golang123/server.crt;     #请修改
+    ssl_certificate_key /path/cert/golang123/server.key; #请修改
+
+    location / {
+        proxy_pass  http://golang123Mobile;
+        proxy_set_header   Host             $host;
+        proxy_set_header   X-Real-IP        $remote_addr;
+        proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+    }
+
+    location /api {
+        proxy_pass  http://golang123MobileApi;
+        proxy_set_header   Host             $host;
+        proxy_set_header   X-Real-IP        $remote_addr;
+        proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+    }
+}
+
+
+使用apache配置简易代理服务
+
+	
+
+正向代理
+
+<IfModule mod_proxy.c>
+
+        # If you want to use apache2 as a forward proxy, uncomment the
+        # 'ProxyRequests On' line and the <Proxy *> block below.
+        # WARNING: Be careful to restrict access inside the <Proxy *> block.
+        # Open proxy servers are dangerous both to your network and to the
+        # Internet at large.
+        #
+        # If you only want to use apache2 as a reverse proxy/gateway in
+        # front of some web application server, you DON'T need
+        # 'ProxyRequests On'.
+
+        ProxyRequests On
+        #  <Proxy *>
+        #     AddDefaultCharset off
+        #     Require all granted
+        #     #Require local
+        #  </Proxy>
+
+        # Enable/disable the handling of HTTP/1.1 "Via:" headers.
+        # ("Full" adds the server version; "Block" removes all outgoing Via: headers)
+        # Set to one of: Off | On | Full | Block
+        # ProxyVia On
+        ProxyPass "/" "http://192.168.80.157:56785/"
+        ProxyPassReverse "/" "http://192.168.80.157:56785/"
+
+</IfModule>
+
+
+反向代理
+
+
+<IfModule mod_proxy.c>
+
+        # If you want to use apache2 as a forward proxy, uncomment the
+        # 'ProxyRequests On' line and the <Proxy *> block below.
+        # WARNING: Be careful to restrict access inside the <Proxy *> block.
+        # Open proxy servers are dangerous both to your network and to the
+        # Internet at large.
+        #
+        # If you only want to use apache2 as a reverse proxy/gateway in
+        # front of some web application server, you DON'T need
+        # 'ProxyRequests On'.
+
+        #ProxyRequests On
+         <Proxy *>
+            AddDefaultCharset off
+            Require all granted
+            #Require local
+         </Proxy>
+
+        # Enable/disable the handling of HTTP/1.1 "Via:" headers.
+        # ("Full" adds the server version; "Block" removes all outgoing Via: headers)
+        # Set to one of: Off | On | Full | Block
+        ProxyVia On
+        ProxyPass "/test" "http://192.168.80.157:56785/"
+        ProxyPassReverse "/test" "http://192.168.80.157:56785/"
+
+</IfModule>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+
+
+
+
+//参考地址链接
+
+http://httpd.apache.org/docs/trunk/howto/reverse_proxy.html
+
+
+
+
+

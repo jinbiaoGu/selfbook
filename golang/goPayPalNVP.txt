@@ -1,0 +1,16 @@
+//读此文前请知晓paypal NVP 支持流程及相应说明文档
+一,组成分类:已知请求内容,将数据分类处理
+     	建立相应的实体struct ,文件分别为 SetExpressCheckout,GetExpressCheckoutDetails,DoExpressCheckoutPayment
+
+二,构成涵数:
+	共有三个api请求,及nvp格式 所以将请求方法封装成函数
+		方法在文件funcMap.go中 方法为 HashCalls 
+	必须数据,由请求数据可知 USER,PWD,SIGNATURE ,RETURNURL,CANCELURL 是必须且共同要请求的所以将此封闭成涵数
+		方法在文件funcMap.go中 方法为 NecessaryParameters 
+	提交数据组成,将所有的实体数据转化为paypal可实别的NVP格式,为了减少字段的重复写,写了个反射来处理
+		方法在文件funcMap.go中 方法为 StructDataStr,为方便后来做验证返回str类型,可方便用户保存数据 
+	由于响应的字段是url字符串,所以要将响应值格式化成容易识别的Map
+		方法在文件funcMap.go中 方法为 DeformatNVP
+	为了交互安全采用https协议
+		方法在文件funcMap.go中 方法为 client
+三,paypal提供了测试和正式两种环境,所以将常用的和固定不变的数据定义在了paypalconfig.go文件中

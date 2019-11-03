@@ -1,0 +1,271 @@
+因为在centos系统里没有NGINX数据源，需要在系统里添加源才可能正常在线安装
+打开http://nginx.org/packages/
+可以看到里面有很多支持的操作系统的packages包
+
+然后选择centos系统，选择相应的版本号即可。把选好的链接复制下来，在centos系统下通过wget命令获取即可，如下：
+
+wget http://nginx.org/packages/centos/6/noarch/RPMS/nginx-release-centos-6-0.el6.ngx.noarch.rpm
+
+安装：rpm -ivh nginx-release-centos-6-0.el6.ngx.noarch.rpm
+
+现在我们就可以正常的通过yum 进行在线安装了。
+yum install -y nginx
+
+ubuntu16.04系统
+由于16.04系统版本自带的软件版本比较高，所以必须自己下载源码进行编译安装。
+1、首先卸载原先在线安装的版本，以下命令可以把nginx的相关依赖也一起删除。
+aptitude purge `dpkg -l | grep nginx| awk '{print $2}' |tr "\n" " "`
+
+2、安装编译安装时所需要的软件
+apt install libpcre3 libpcre3-dev openssl libssl-dev gcc g++ openssl make
+这些都是基本的，如果你需要nginx扩展功能，可能还会需要更多的软件，根据实际环境需求进行安装。
+
+3、把源码文件传到服务器上解压，进入文件夹，执行安装
+./configure --prefix=/usr/local/nginx 
+make
+make install
+
+4、新建启动文件脚本
+#! /bin/bash
+# chkconfig: 2345 55 25
+# Description: Startup script for nginx webserver on Debian. Place in /etc/init.d and
+# run 'update-rc.d -f nginx defaults', or use the appropriate command on your
+# distro. For CentOS/Redhat run: 'chkconfig --add nginx'
+
+### BEGIN INIT INFO
+# Provides:          nginx
+# Required-Start:    $all
+# Required-Stop:     $all
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: starts the nginx web server
+# Description:       starts nginx using start-stop-daemon
+### END INIT INFO
+
+# Author:   licess
+# website:  http://lnmp.org
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+#+++++++++++++++++++++++++++++++++++++++
+#根据自己的具体路径更改以下参数
+NAME=nginx
+NGINX_BIN=/usr/sbin/$NAME
+CONFIGFILE=/usr/local/nginx/$NAME.conf
+PIDFILE=/run/$NAME.pid
+#+++++++++++++++++++++++++++++++++++++++++
+case "$1" in
+    start)
+        echo -n "Starting $NAME... "
+
+        if netstat -tnpl | grep -q nginx;then
+            echo "$NAME (pid `pidof $NAME`) already running."
+            exit 1
+        fi
+
+        $NGINX_BIN -c $CONFIGFILE
+
+        if [ "$?" != 0 ] ; then
+            echo " failed"
+            exit 1
+        else
+            echo " done"
+        fi
+        ;;
+
+    stop)
+        echo -n "Stoping $NAME... "
+
+        if ! netstat -tnpl | grep -q nginx; then
+            echo "$NAME is not running."
+            exit 1
+        fi
+
+        $NGINX_BIN -s stop
+
+        if [ "$?" != 0 ] ; then
+            echo " failed. Use force-quit"
+            exit 1
+        else
+            echo " done"
+        fi
+        ;;
+
+    status)
+        if netstat -tnpl | grep -q nginx; then
+            PID=`pidof nginx`
+            echo "$NAME (pid $PID) is running..."
+        else
+            echo "$NAME is stopped"
+            exit 0
+        fi
+        ;;
+
+    force-quit)
+        echo -n "Terminating $NAME... "
+
+        if ! netstat -tnpl | grep -q nginx; then
+            echo "$NAME is not running."
+            exit 1
+        fi
+
+        kill `pidof $NAME`
+
+        if [ "$?" != 0 ] ; then
+            echo " failed"
+            exit 1
+        else
+            echo " done"
+        fi
+        ;;
+
+    restart)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+
+    reload)
+        echo -n "Reload service $NAME... "
+
+        if netstat -tnpl | grep -q nginx; then
+            $NGINX_BIN -s reload
+            echo " done"
+        else
+            echo "$NAME is not running, can't reload."
+            exit 1
+        fi
+        ;;
+
+    configtest)
+        echo -n "Test $NAME configure files... "
+
+        $NGINX_BIN -t
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|force-quit|restart|reload|status|configtest}"
+        exit 1
+        ;;
+
+esac
+
+5、更改nginx.conf文件
+
+user  www-data;     #需要更改
+worker_processes  4;  #根据实际情况更改
+
+#error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+
+#pid        logs/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    #                  '$status $body_bytes_sent "$http_referer" '
+    #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    server {
+        listen       80;
+        server_name  localhost 192.168.0.153;
+        root html;   #根据实际情况更改
+
+        #charset koi8-r;
+
+        #access_log  logs/host.access.log  main;
+
+        location / {
+            index  index.html index.htm index.php;
+        }
+
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        location ~ \.php$ {
+            #root           html;
+            #fastcgi_pass   127.0.0.1:9000;
+            fastcgi_pass   unix:/run/php/php5.6-fpm.sock;  #根据实际情况更改
+            fastcgi_index  index.php;
+            fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+            include        fastcgi_params;
+        }
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+    }
+
+
+    # another virtual host using mix of IP-, name-, and port-based configuration
+    #
+    #server {
+    #    listen       8000;
+    #    listen       somename:8080;
+    #    server_name  somename  alias  another.alias;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+
+    # HTTPS server
+    #
+    #server {
+    #    listen       443;
+    #    server_name  localhost;
+
+    #    ssl                  on;
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_timeout  5m;
+
+    #    ssl_protocols  SSLv2 SSLv3 TLSv1;
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers   on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+}

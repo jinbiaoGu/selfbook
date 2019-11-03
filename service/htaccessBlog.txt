@@ -1,0 +1,43 @@
+.htaccess
+
+RewriteEngine On ：启动URL重写引擎
+RewriteBase /  定义了重写基准目录 / 根目录。
+RewriteCond %{HTTP_HOST} 匹配域名
+RewriteCond %{REQUEST_URI} 匹配url
+RewriteCond %{QUERY_STRING} 匹配请求参数
+规则：
+引用自
+文本
+. 任意一个单字符
+[chars] 字符类: "chars"中的任意一个字符
+[^chars] 字符类: 不在"chars"中的字符
+text1|text2 选择: text1 或 text2
+
+量词
+? 前面的字符出现 0 或 1 次
+* 前面的字符出现 0 或 N 次(N > 0)
++ 前面的字符出现 1 或 N 次(N > 1
+
+原来这样：?号把前面的p也作为参数了，p?（?）就变成了$1,可实现跳转,但这显然不是需求那样的.
+解决方法如下：
+
+RewriteCond %{QUERY_STRING} ^k=(.+)$
+RewriteRule ^Default/List\.html$ index.php?module=Default&action=List&k=%1 [L]
+
+例 :
+	把 /tools/index.html?id=123  =>  /index.php?sid=123 的写法：
+	RewriteEngine on
+	RewriteCond %{QUERY_STRING} ^id=(.+)$
+	RewriteRule ^/tolls/index.html$ /index.php?sid=%1 [L]
+	RewriteRule 不会去匹配 ? 后面的字符串，需要用RewriteCond来匹配
+	
+配置文件httpd.conf修改如下：
+
+RewriteCond %{QUERY_STRING} ^k=(.+)$
+RewriteRule ^tag/$ tag/%1 [L]
+
+注意配置中的两个问号的应用，其中QUERY_STRING取得url问号后的查询字符串，这里实际重写应用是需要去掉后面的查询字符，所以需要用到？来终结！
+
+官方文档解释为：
+注意：查询字符串
+Pattern 不会按照查询字符串进行匹配。为了达到这个目的，你必须使用一个带有%{QUERY_STRING}变量的RewriteCond指令。当然，你也可以在 替换字符串中创建包含查询字符串的URL：在替换字符串串中使用问号，以标明其后的部分应该被重新注入到QUERY_STRING中。而要删除一个已有的 请求串，则可以用问号来终结替换字符串。为了联合新旧查询字符串，请使用[QSA]标志。

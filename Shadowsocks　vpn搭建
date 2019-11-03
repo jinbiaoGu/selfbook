@@ -1,0 +1,135 @@
+Shadowsocks　vpn搭建教程
+
+Server部署
+
+使用Shadowsocks需要在VPS上部署Server，目前有用Python、Go和C编写的Server端程序。我在VPS上部署的是使用Python版本，所以后面介绍的都是基于Python版本
+
+官网例子https://shadowsocks.org/en/download/servers.html
+
+查看本地版本
+	python --version
+		Python 2.7.12+
+检查 pip 是否安装成功
+	pip -V
+
+安装Pip
+sudo apt-get install python-pip
+
+//安装Shadowsocks　server
+
+pip install shadowsocks    
+
+配置shadowsocks
+
+新建配置文件：
+
+SS安装以后需要进行配置，SS使用JSON格式文件进行配置，配置文件路径和名字可以自己决定，一般放在：
+
+vi /etc/shadowsocks.json
+
+格式如下：
+单端口和多端口两种配置方式（按需求配置其一即可）：
+
+单端口：
+
+    {
+    "server":"0.0.0.0",//监听IP　一般指server ip你VPS的IP地址，IPV4,IPV6都可以
+    "server_port":8388, //开放端口
+    "local_address": "127.0.0.1",本地侦听的地址
+    "local_port":1080,本地侦听的端口
+    "password":"mypassword",   //客户验证密码
+    "timeout":300, //超时时间
+    "method":"aes-256-cfb",//加密格式
+    "fast_open": false，  //是否显示错误
+     "workers":1                             //进程数
+	}
+
+多用户配置
+使用port_password，每个用户对应一个端口，然后后面是密码
+
+{
+    "server": "0.0.0.0",
+    "port_password": {
+        "8381": "foobar1",
+        "8382": "foobar2",
+        "8383": "foobar3",
+        "8384": "foobar4"
+    },
+			"local_address": "127.0.0.1",
+			"local_port": 1080,
+			"timeout":600,
+			"method":"aes-256-cfb"
+}
+
+
+一般我们采用单端口，如果你要打算搭建个服务去卖的话，可以考虑多端口
+
+
+
+
+设置防火墙并启动服务
+
+防火墙设置：systemctl stop firewalld.service
+
+启动或停止ShadowSocks服务：ssserver -c /etc/shadowsocks.json -d start/stop
+
+ssserver -c /etc/shadowsocks.json              //检查并重读配置文件
+ssserver -c /etc/shadowsocks.json -d start     //后台启动
+netstat -anput | grep 8388                     //检查端口号
+
+目前为止服务完成　
+
+安装m2crypto可以加快一点加密速度
+apt-get install python-m2crypto
+
+ 开机启动
+
+在/etc/rc.local中加入
+
+ #start the shadowsocks server
+ sudo ssserver -c /etc/shadowsocks.json -d start
+
+
+
+
+
+
+
+
+
+如果遇到libcrypto.so.1.1: undefined symbol: EVP_CIPHER_CTX_cleanup
+
+
+这个问题是由于在openssl1.1.0版本中，废弃了EVP_CIPHER_CTX_cleanup函数，如官网中所说：
+
+EVP_CIPHER_CTX was made opaque in OpenSSL 1.1.0. As a result, EVP_CIPHER_CTX_reset() appeared and EVP_CIPHER_CTX_cleanup() disappeared. EVP_CIPHER_CTX_init() remains as an alias for EVP_CIPHER_CTX_reset().
+
+EVP_CIPHER_CTX_reset函数替代了EVP_CIPHER_CTX_cleanup函数
+EVP_CIPHER_CTX_reset函数说明：
+
+EVP_CIPHER_CTX_reset() clears all information from a cipher context and free up any allocated memory associate with it, except the ctx itself. This function should be called anytime ctx is to be reused for another EVP_CipherInit() / EVP_CipherUpdate() / EVP_CipherFinal() series of calls
+
+
+修改方法：
+
+用vim打开文件：vim /usr/local/lib/python2.7/dist-packages/shadowsocks/crypto/openssl.py (该路径请根据自己的系统情况自行修改，如果不知道该文件在哪里的话，可以使用find命令查找文件位置)
+
+跳转到52行（shadowsocks2.8.2版本，其他版本搜索一下cleanup）
+进入编辑模式
+将第52行libcrypto.EVP_CIPHER_CTX_cleanup.argtypes = (c_void_p,)
+改为libcrypto.EVP_CIPHER_CTX_reset.argtypes = (c_void_p,)
+再次搜索cleanup（全文件共2处，此处位于111行），将libcrypto.EVP_CIPHER_CTX_cleanup(self._ctx)
+改为libcrypto.EVP_CIPHER_CTX_reset(self._ctx)
+保存并推出
+ssserver -c /etc/shadowsocks.json -d start     //后台启动
+
+
+
+
+
+
+可以配合 ss-bash 进行脚本管理
+shadowsocks流量管理脚本ss-bash
+
+
+

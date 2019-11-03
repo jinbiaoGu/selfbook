@@ -1,0 +1,124 @@
+一,qor Admin 后台管理的配置使用
+
+1) 一般配置项
+在github.com/qor/admin/admin.go 中可以看到 
+AdminConfig初始化时，您可以使用struct 来定制Admin ，这里有一些常规配置：
+
+	type AdminConfig struct {
+	  SiteName       string
+	  DB             *gorm.DB
+	  Auth           Auth
+	  SessionManager session.ManagerInterface
+	  I18n           I18n
+	  AssetFS        assetfs.Interface
+	  *Transformer
+	}
+SiteName:
+	默认情况下，网站名称是Qor Admin，您可以SiteName用来更改网站的标题。
+	Admin := admin.New(&admin.AdminConfig{SiteName: "XXX 网站管理后台"})
+	[[注意]]最好是英文,或者拼音,因为后台会根据sitename加载相应的样式
+DB:
+
+	DB 是一个GORM DB连接，它是必需的，QOR Admin将使用DB来管理数据。
+	Admin  = admin.New(&admin.AdminConfig{
+			SiteName: " 网站管理后台 ",
+			Auth:     auth.AdminAuth{},
+			DB:       db.DB,
+		})
+Auth:
+
+	Auth 用于身份验证
+
+SessionManager:
+
+	管理员使用SessionManager来处理cookie，flash消息
+
+I18n:
+
+	管理员的国际化解决方案
+
+AssetFS:
+	AssetFS定义了如何在呈现页面时查找模板
+
+Transformer:
+
+	RESTFul
+2)界面管理配置
+	可以通过QOR Admin的用户界面（通常是GORM后端模型）进行管理
+在github.com/qor/amdin/menu.go 中可以看到
+	type Menu struct {
+		Name         string
+		Link         string
+		RelativePath string
+		Priority     int
+		Ancestors    []string
+		Permissioner HasPermissioner
+		Permission   *roles.Permission
+
+		subMenus []*Menu
+		router   *Router
+	}
+
+使用方法如下
+	Admin.AddMenu(&admin.Menu{
+		Name: "Report", //设置导航名称
+		Link: "/admin/reports", //为导航设置url链接
+		RelativePath: "/sales_report",//也可以只写内部链接,默认会配置类似于admin/sales_report
+		Ancestors: []string{"Reports"},//父类导航名称
+		Invisible: true,//是否在菜单中显示
+		Permission: roles.Allow(roles.Read, "admin"),//权限管理(admin 对此有读的权限)
+		Priority: -1//排序,小号具有较高优先级，负号具有最低优先级
+	})
+配置您自己的菜单图标
+	在CSS中，定制QOR Admin的CSS管理主题,如将product的图标更换。
+	[qor-icon-name*="Products"] > a::before {
+	  content: "\E2BF";
+	}
+
+
+
+
+
+自定义后台可见的字段
+默认情况下，如果您专门声明字段，则所有字段都可见，只有定义的字段将可见，并且将按照定义的顺序显示：
+//如在admin后台，添加　order,product 功能表
+order := Admin.AddResource(&models.Order{})
+product := Admin.AddResource(&models.Product{})
+
+//　IndexAttrs ,表示在order列表，只显示的可见数据
+order.IndexAttrs("User", "PaymentAmount", "ShippedAt", "CancelledAt", "State", "ShippingAddress")
+
+//　｀－｀ 表示在order列表有那些数据不显示
+order.IndexAttrs("-State")
+
+//添加新页面时，要显示的数据
+order.NewAttrs("User", "PaymentAmount", "ShippedAt", "CancelledAt", "State", "ShippingAddress")
+//添加新页面时，除了　state这个属性不显示
+order.NewAttrs("-State")
+//可以使用结构体的形式进行添加，这个让页面更整洁规范
+product.NewAttrs(
+  &admin.Section{
+    Title: "Basic Information",
+    Rows: [][]string{
+      {"Name"},
+      {"Code", "Price"},
+    }
+  },
+  &admin.Section{
+    Title: "Organization",
+    Rows: [][]string{
+      {"Category", "Collections", "MadeCountry"},
+    }
+  },
+  "Description",
+  "ColorVariations",
+}
+)
+
+//在编辑页面时，要显示的字段性
+order.EditAttrs("User", "PaymentAmount", "ShippedAt", "CancelledAt", "State", "ShippingAddress")
+//在页面查看时，要显示的属性
+product.ShowAttrs("Name", "Featured", "Price")
+
+
+

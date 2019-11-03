@@ -1,0 +1,46 @@
+Apache配置：(默认端口是80,会和iis冲突 )
+1 修改Apache2.2\conf\httpd.conf文件配置，在文件中将 LoadModule 前的注释符号"#"去掉
+# ====================================
+LoadModule proxy_module modules/mod_proxy.so
+# ====================================
+LoadModule proxy_balancer_module modules/mod_proxy_balancer.so
+# ====================================
+LoadModule proxy_connect_module modules/mod_proxy_connect.so
+# ====================================
+LoadModule proxy_http_module modules/mod_proxy_http.so
+# ====================================
+2 修改Apache2.2\conf\httpd.conf文件配置在文件尾部追加
+# ===============================
+ProxyPass / balancer://proxy/ lbmethod=bytraffic
+<Proxy balancer://proxy>   
+ BalancerMember http://localhost:8080/ loadfactor=1 
+ BalancerMember http://localhost:8081/ loadfactor=2
+</Proxy>
+# ===============================
+说明：
+       #BalancerMember 后面的URL表示要配置的后台服务
+       #参数”loadfactor”表示后台服务器负载到由Apache发送请求的权值,该值默认为1 
+
+1)轮询均衡策略的配置
+ProxyPass / balancer://proxy/
+<Proxy balancer://proxy>   
+ BalancerMember http://127.0.0.1:8080/
+ BalancerMember http://127.0.0.1:8081/
+</Proxy>   
+实现负载均衡的原理如下:
+假设Apache接收到http://localhost/test请求,由于该请求满足ProxyPass条件(其URL前缀为“/"),该请求会 被分发到后台某一个BalancerMember,譬如,该请求可能会转发到http://127.0.0.1:8080/进行处理?当第二 个满足条件的URL请求过来时,该请求可能会被分发到另外一台BalancerMember,譬如,可能会转发到 http://127.0.0.1:8081/如此循环反复,便实现了负载均衡的机制?
+2)按权重分配均衡策略的配置
+ProxyPass / balancer://proxy/
+<Proxy balancer://proxy>   
+ BalancerMember http://127.0.0.1:8080/ loadfactor=3
+ BalancerMember http://127.0.0.1:8081/ loadfactor=1
+</Proxy>
+参数"loadfactor"表示后台服务器负载到由Apache发送请 求的权值,该值默认为1,可以将该值设置为1到100之间的任何值?以上面 的配置为例,介绍如何实现按权重分配的负载均衡,现假设Apache收到4次http://localhost/loadBalancing/index.jsp请求,该请求分别被负载到后台 服务器,则有3次连续的这样请求被负载到BalancerMember为http://127.0.0.1:8080/的服务器,有1次这样的请求被 负载BalancerMember为http://127.0.0.1:8081/后台服务器?实现了按照权重连续分配的均衡策略?
+3)权重请求响应负载均衡策略的配置
+ProxyPass / balancer://proxy/ lbmethod=bytraffic
+<Proxy balancer://proxy>   
+ BalancerMember http://127.0.0.1:8080/ loadfactor=3
+ BalancerMember http://127.0.0.1:8081/ loadfactor=1
+</Proxy>
+参数“lbmethod=bytraffic"表示后台服务器负载请求和 响应的字节数,处理字节数的多少是以权值的方式来表示的? “loadfactor"表示后台服务器处理负载请求和响应字节数的权值,该值默认为1,可以将该值设置在1到100的任何值?根据以上配置是这么进行均 衡负载的,假设Apache接收到http://localhost/loadBalancing/index.jsp请求,将请求转发给后台服务器,如果BalancerMember为http://127.0.0.1:8080/后台服务器负载到这个请求,那么它处理请求和响应的字节数是BalancerMember为http://127.0.0.1:8081/服务器的3倍。也就是说(2)是以请求数作为权重负载均衡的,(3)是以流量为权重负载均衡的,这是最大的区别！
+

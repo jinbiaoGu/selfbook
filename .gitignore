@@ -1,0 +1,15 @@
+# directory
+build
+
+# file
+
+yarn.lock
+.vscode
+package-lock.json
+tsconfig.json
+# Logs
+
+# Dependency directory
+node_modules
+.git
+

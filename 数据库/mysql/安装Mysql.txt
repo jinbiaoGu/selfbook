@@ -1,0 +1,104 @@
+1.首先检查系统中是否已经安装了MySQL（第一次安装跳过这步就可以）
+终端输入：
+
+ sudo netstat -tap | grep mysql
+ 2.更新MySQL的安装索引
+
+执行
+sudo apt-get update （也可以忽略 ）
+
+3.安装配置 （中途会提示设置密码 密码记不住可以输入root）
+
+执行
+sudo apt-get install mysql-server
+
+3.运行安全脚本（会提示输入刚刚设置的密码 其他直接Y或回车接受后续的默认值）
+
+执行
+sudo mysql_secure_installation
+
+
+4.测试安装情况
+
+执行
+systemctl status mysql.service
+
+1.如果没有运行 可以手动启动
+
+执行
+sudo systemctl mysql start
+
+    1
+    2
+
+2.其他操作可通过mysqladmin连接到数据库
+
+执行
+mysqladmin -p -u root version
+
+
+
+安装Nginx
+sudo apt install nginx
+
+sudo service nginx start
+
+ifconfig
+
+使用浏览器访问本地IP。
+
+
+ 安装PHP
+
+
+    sudo apt install php php-fpm php7.0-mysql
+
+为使Nginx支持PHP，需要修改Nginx的配置文件，首先备份原始配置文件。
+
+
+    sudo mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default.old
+
+编辑/etc/nginx/sites-available文件，作为Nginx的配置文件。
+
+
+    sudo vim /etc/nginx/sites-available/default
+
+
+     修改完Nginx配置，需要重启Nginx
+
+
+    sudo service nginx restart
+
+在/usr/share/nginx/html/目录创建info.php文件，测试PHP
+
+
+    sudo nano /usr/share/nginx/html/info.php
+
+输入以下内容
+
+
+    <?php
+
+    phpinfo();
+
+    ?>
+
+在浏览器打开http://本地IP/info.php
+
+
+location / {
+  try_files $uri /index.html index.php;
+} 
+
+
+打开/etc/php/7.0/fpm/pool.d/www.conf文件，找到listen=的这两行，设置相应的IP和端口值 。
+
+;listen = /run/php/php7.0-fpm.sock
+listen = 127.0.0.1:9000
+
+启动这两个进程：
+
+service nginx start
+
+service php7.0-fpm start
+

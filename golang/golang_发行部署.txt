@@ -1,0 +1,130 @@
+一,独立部署
+
+以下qor代表项目
+
+独立部署即为在后端运行程序，让程序跑在后台。
+linux
+
+在 linux 下面部署，我们可以利用 nohup 命令，把应用部署在后端，如下所示：
+
+nohup ./qor &
+
+这样你的应用就跑在了 Linux 系统的守护进程
+Windows
+
+在 Windows系 统中，设置开机自动，后台运行，有如下几种方式：
+
+    制作 bat 文件，放在“启动”里面
+    制作成服务
+二,Supervisord部署
+
+   1, Ubuntu系统下：apt-get install supervisor，通过这种方式安装后，自动设置为开机启动
+   2, 也可以通过 pip install supervisor 进行安装，但是需要手动启动，然后设置为开机启动（不推荐这种安装方式）
+        如果安装不成功,升级下pip 用pip安装
+         sudo apt  install -y python-pip && pip install pip --upgrade
+         sudo apt-get   install -y python-pip && pip install pip --upgrade
+         如果升级失败 可以试试sudo python -m pip install --upgrade pip 这个命令
+
+   Supervisor 配置
+
+        echo_supervisord_conf >/etc/supervisord.conf
+        mkdir /etc/supervisord.conf.d
+
+        修改配置 /etc/supervisord.conf
+        在最下面添加如下(记得前面不要留空格)
+         [include]
+         files = /etc/supervisord.conf.d/*.conf
+
+    新建管理的应用
+        cd /etc/supervisord.conf.d
+        vim qor.conf
+    配置文件：";" 在这里是注释作用
+        [program:qor] ;程序名称，在 supervisorctl 中通过这个值来对程序进行一系列的操作
+        command=/media/gu/WindowsD/GoWorks/src/qor-example ;表示运行的命令，填入完整的路径即可。
+        autostart=true ; 在 supervisord 启动的时候也自动启动
+        autorestart=true ;程序异常退出后自动重启
+        startsecs=10
+        stdout_logfile=/var/log/qor_http_server.log ;终端标准输出重定向文件。
+        stdout_logfile_maxbytes=1MB
+        stdout_logfile_backups=10
+        stdout_capture_maxbytes=1MB
+        stderr_logfile=/var/log/qor_http_server.log
+        stderr_logfile_maxbytes=1MB
+        stderr_logfile_backups=10
+        stderr_capture_maxbytes=1MB
+    启动supervisor
+    $ sudo /usr/bin/supervisord -c /etc/supervisord.conf
+    查看supervisor运行状态
+    $ supervisorctl
+
+    supervisord 管理
+
+    Supervisord 安装完成后有两个可用的命令行 supervisord 和 supervisorctl，命令使用解释如下：
+
+        supervisord，初始启动Supervisord，启动、管理配置中设置的进程。
+        supervisorctl stop programxxx，停止某一个进程(programxxx)，programxxx为[program:qor]里配置的值，这个示例就是qor。
+        supervisorctl start programxxx，启动某个进程
+        supervisorctl restart programxxx，重启某个进程
+        supervisorctl stop groupworker: ，重启所有属于名为groupworker这个分组的进程(start,restart同理)
+        supervisorctl stop all，停止全部进程，注：start、restart、stop都不会载入最新的配置文件。
+        supervisorctl reload，载入最新的配置文件，停止原有进程并按新的配置启动、管理所有进程。
+        supervisorctl update，根据最新的配置文件，启动新配置或有改动的进程，配置没有改动的进程不会受影响而重启。
+   nginx 部署
+
+    server {
+        listen       80;
+        server_name  .a.com;
+
+        charset utf-8;
+        access_log  /home/a.com.access.log;
+
+        location /(css|js|fonts|img)/ {
+            access_log off;
+            expires 1d;
+
+            root "/path/to/app_a/static";
+            try_files $uri @backend;
+        }
+
+        location / {
+            try_files /_not_exists_ @backend;
+        }
+
+        location @backend {
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header Host            $http_host;
+
+            proxy_pass http://127.0.0.1:8080;
+        }
+    }
+Apache 配置
+
+apache 和 nginx 的实现原理一样，都是做一个反向代理，把请求向后端传递，配置如下所示：
+
+NameVirtualHost *:80
+<VirtualHost *:80>
+	ServerAdmin webmaster@dummy-host.example.com
+	ServerName www.a.com
+	ProxyRequests Off
+	<Proxy *>
+		Order deny,allow
+		Allow from all
+	</Proxy>
+	ProxyPass / http://127.0.0.1:8080/
+	ProxyPassReverse / http://127.0.0.1:8080/
+</VirtualHost>
+
+<VirtualHost *:80>
+	ServerAdmin webmaster@dummy-host.example.com
+	ServerName www.b.com
+	ProxyRequests Off
+	<Proxy *>
+		Order deny,allow
+		Allow from all
+	</Proxy>
+	ProxyPass / http://127.0.0.1:8081/
+	ProxyPassReverse / http://127.0.0.1:8081/
+</VirtualHost>
+
+
+在这里nginx + supervisord 或者 Apache + supervisord 可以一起使用
